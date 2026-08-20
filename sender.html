@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>下发 Didit 链接控制台</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, -apple-system, sans-serif;}
+        body{background-color:#f7f9fc;color:#2d3748;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+        .card{width:100%;max-width:620px;background:#ffffff;border-radius:16px;padding:32px;box-shadow:0 4px 16px rgba(0,0,0,0.08);border:1px solid #e2e8f0;}
+        h1{font-size:24px;margin-bottom:8px;color:#1a202c;}
+        .desc{color:#718096;margin-bottom:28px;font-size:15px;}
+        .input-block{margin-bottom:20px;}
+        label{display:block;margin-bottom:8px;font-size:14px;color:#4a5568;}
+        input{width:100%;background:#f8fafc;border:1px solid #cbd5e0;border-radius:10px;padding:14px 16px;color:#2d3748;font-size:15px;outline:none;transition:0.2s;}
+        input:focus{border-color:#3182ce;box-shadow:0 0 0 3px rgba(49,130,206,0.15);}
+        .btn{width:100%;padding:15px;border-radius:10px;border:none;background:#3182ce;color:#ffffff;font-size:16px;font-weight:500;cursor:pointer;transition:0.2s;}
+        .btn:hover{background:#2b6cb0;}
+        .status{margin-top:16px;padding:12px;border-radius:10px;background:#f8fafc;font-size:14px;min-height:48px;color:#2d3748;}
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>下发 Didit 链接控制台</h1>
+    <p class="desc">输入链接，一键推送到平板接收页面</p>
+
+    <div class="input-block">
+        <label>GoEasy Common Key</label>
+        <input type="text" id="goeasyKey" placeholder="填入你的 Common Key">
+    </div>
+    <div class="input-block">
+        <label>频道名称（两边必须保持一致）</label>
+        <input type="text" id="channelName" value="internal‑didit‑push‑001">
+    </div>
+    <div class="input-block">
+        <label>要推送跳转的 Didit 链接</label>
+        <input type="text" id="urlInput" placeholder="粘贴 Didit session 链接">
+    </div>
+
+    <button class="btn" id="sendBtn">推送链接到平板</button>
+    <div class="status" id="statusBox">状态：等待操作</div>
+</div>
+
+<script src="https://cdn.goeasy.io/goeasy‑2.10.1.min.js"></script>
+<script>
+    let goEasy = null;
+    const statusBox = document.getElementById('statusBox');
+
+    document.getElementById('sendBtn').onclick = async function(){
+        const key = document.getElementById('goeasyKey').value.trim();
+        const channel = document.getElementById('channelName').value.trim();
+        const targetUrl = document.getElementById('urlInput').value.trim();
+
+        if(!key || !channel || !targetUrl){
+            statusBox.innerText = "状态：请填写全部内容";
+            return;
+        }
+        if(!targetUrl.startsWith("http")){
+            statusBox.innerText = "状态：链接必须以 http 开头";
+            return;
+        }
+
+        if(!goEasy){
+            goEasy = new GoEasy({
+                appkey: key
+            });
+        }
+
+        statusBox.innerText = "状态：正在推送……";
+        goEasy.publish({
+            channel: channel,
+            message: JSON.stringify({jumpUrl: targetUrl}),
+            onSuccess: function(){
+                statusBox.innerText = "状态：推送成功！";
+            },
+            onFailed: function(err){
+                statusBox.innerText = "推送失败：" + err.content;
+            }
+        })
+    }
+</script>
+</body>
+</html>
