@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial‑scale=1.0">
+    <title>平板监听推送</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,‑apple‑system,sans‑serif;}
+        body{background‑color:#f7f9fc;color:#2d3748;min‑height:100vh;display:flex;flex‑direction:column;align‑items:center;justify‑content:center;padding:24px;text‑align:center;}
+        .wrap{max‑width:560px;width:100%;background:#ffffff;border‑radius:18px;padding:40px 28px;border:1px solid #e2e8f0;box‑shadow:0 4px 16px rgba(0,0,0,0.08);}
+        h2{font‑size:26px;margin‑bottom:12px;color:#1a202c;}
+        .tip{color:#718096;font‑size:15px;margin‑bottom:32px;}
+        .input‑row{margin‑bottom:20px;text‑align:left;}
+        label{display:block;margin‑bottom:8px;font‑size:14px;color:#4a5568;}
+        input{width:100%;background:#f8fafc;border:1px solid #cbd5e0;border‑radius:10px;padding:14px 16px;color:#2d3748;font‑size:15px;outline:none;}
+        .state‑box{margin‑top:24px;padding:16px;border‑radius:10px;background:#f8fafc;font‑size:15px;color:#2d3748;}
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <h2>正在监听推送</h2>
+    <p class="tip">保持页面前台打开，收到指令自动跳转</p>
+
+    <div class="input‑row">
+        <label>GoEasy Common Key</label>
+        <input type="text" id="goeasyKey" placeholder="填入 Common Key">
+    </div>
+    <div class="input‑row">
+        <label>频道名称（和发送端保持一模一样）</label>
+        <input type="text" id="channelName" value="internal‑didit‑push‑001">
+    </div>
+
+    <div class="state‑box" id="stateText">尚未连接</div>
+</div>
+
+<script src="https://cdn.goeasy.io/goeasy‑2.10.1.min.js"></script>
+<script>
+    let goEasy = null;
+    let channelObj = null;
+    const stateText = document.getElementById('stateText');
+
+    function startListen(){
+        const key = document.getElementById('goeasyKey').value.trim();
+        const channel = document.getElementById('channelName').value.trim();
+        if(!key || !channel){
+            stateText.innerText = "请先填写 Key 和频道名称";
+            return;
+        }
+
+        if(goEasy) goEasy.disconnect();
+
+        goEasy = new GoEasy({appkey: key});
+        stateText.innerText = "正在连接……";
+
+        channelObj = goEasy.subscribe({
+            channel: channel,
+            onMessage: function(msg){
+                try{
+                    const data = JSON.parse(msg.content);
+                    if(data.jumpUrl && data.jumpUrl.startsWith("http")){
+                        stateText.innerText = "收到跳转指令，即将打开：" + data.jumpUrl;
+                        window.location.href = data.jumpUrl;
+                    }
+                }catch(e){}
+            },
+            onSuccess:function(){
+                stateText.innerText = "✅ 连接成功，等待推送";
+            },
+            onFailed:function(err){
+                stateText.innerText = "连接失败：" + err.content;
+            }
+        })
+    }
+
+    document.getElementById('goeasyKey').addEventListener('change', startListen);
+    document.getElementById('channelName').addEventListener('change', startListen);
+</script>
+</body>
+</html>
+
