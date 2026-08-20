@@ -108,20 +108,41 @@
     <div class="status" id="statusBox">状态：等待操作</div>
 </div>
 
-<script src="https://cdn.goeasy.io/goeasy-2.10.1.min.js"></script>
+<script src="https://cdn.goeasy.io/goeasy-2.13.24.min.js"></script>
 <script>
-    // ========== 在这里填入你的配置，修改下面两行 ==========
-    const commonKey = "BC-d4cfcb8b7010477c8b095b97d042aa12";
-    const channelName = "internal‑didit‑push‑001";
+    // ========== 仅此处修改，填入你的 Common Key（BC‑开头） ==========
+    const commonKey = "在这里填入你的GoEasy Common Key";
+    const channelName = "internal-didit-push-001";
     // ======================================================
 
     let goEasy = null;
+    let isConnected = false;
     const statusBox = document.getElementById('statusBox');
+
+    function initGoEasy(){
+        if(!commonKey || commonKey === "在这里填入你的GoEasy Common Key"){
+            statusBox.innerText = "错误：请先在源码内填写 GoEasy Common Key";
+            return;
+        }
+        goEasy = GoEasy.getInstance({
+            appkey: commonKey,
+            modules: ['pubsub']
+        });
+        goEasy.connect({
+            onSuccess:function(){
+                isConnected = true;
+                statusBox.innerText = "GoEasy连接成功，可以发送";
+            },
+            onFailed:function(err){
+                isConnected = false;
+                statusBox.innerText = "连接失败：" + err.content;
+            }
+        })
+    }
 
     document.getElementById('sendBtn').onclick = function () {
         const targetUrl = document.getElementById('urlInput').value.trim();
-
-        if (!commonKey || commonKey === "BC-d4cfcb8b7010477c8b095b97d042aa12") {
+        if (!commonKey || commonKey === "在这里填入你的GoEasy Common Key") {
             statusBox.innerText = "错误：请先在源码内填写 GoEasy Common Key";
             return;
         }
@@ -133,13 +154,18 @@
             statusBox.innerText = "状态：链接必须以 http / https 开头";
             return;
         }
-
-        if (!goEasy) {
-            goEasy = new GoEasy({ appkey: commonKey });
+        if(!goEasy){
+            initGoEasy();
+            statusBox.innerText = "正在初始化连接，请稍后再点";
+            return;
+        }
+        if(!isConnected){
+            statusBox.innerText = "尚未连接成功，等待连接";
+            return;
         }
 
         statusBox.innerText = "状态：正在推送消息……";
-        goEasy.publish({
+        goEasy.pubsub.publish({
             channel: channelName,
             message: JSON.stringify({ jumpUrl: targetUrl }),
             onSuccess: function () {
