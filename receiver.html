@@ -60,7 +60,7 @@
 <script src="https://cdn.goeasy.io/goeasy-2.10.1.min.js"></script>
 <script>
     // ========== 和发送端填写完全一样的配置 ==========
-    const commonKey = "BC-d4cfcb8b7010477c8b095b97d042aa12";
+    const commonKey = "在这里填入你的GoEasy Common Key";
     const channelName = "internal‑didit‑push‑001";
     // ================================================
 
@@ -102,47 +102,3 @@
 </script>
 </body>
 </html>
-<script>
-    let goEasy = null;
-    let channelObj = null;
-    const stateText = document.getElementById('stateText');
-
-    function startListen(){
-        const key = document.getElementById('goeasyKey').value.trim();
-        const channel = document.getElementById('channelName').value.trim();
-        if(!key || !channel){
-            stateText.innerText = "请先填写 Key 和频道名称";
-            return;
-        }
-
-        if(goEasy) goEasy.disconnect();
-
-        goEasy = new GoEasy({appkey: key});
-        stateText.innerText = "正在连接……";
-
-        channelObj = goEasy.subscribe({
-            channel: channel,
-            onMessage: function(msg){
-                try{
-                    const data = JSON.parse(msg.content);
-                    if(data.jumpUrl && data.jumpUrl.startsWith("http")){
-                        stateText.innerText = "收到跳转指令，即将打开：" + data.jumpUrl;
-                        window.location.href = data.jumpUrl;
-                    }
-                }catch(e){}
-            },
-            onSuccess:function(){
-                stateText.innerText = "✅ 连接成功，等待推送";
-            },
-            onFailed:function(err){
-                stateText.innerText = "连接失败：" + err.content;
-            }
-        })
-    }
-
-    document.getElementById('goeasyKey').addEventListener('change', startListen);
-    document.getElementById('channelName').addEventListener('change', startListen);
-</script>
-</body>
-</html>
-
