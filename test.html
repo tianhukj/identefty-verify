@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div id="tip">开始连接</div>
+<script src="https://cdn.goeasy.io/goeasy-2.13.24.min.js"></script>
+<script>
+const key = "这里粘贴你的Common Key";
+const goEasy = GoEasy.getInstance({
+    host:"hangzhou.goeasy.io",
+    appkey: key,
+    modules:['pubsub']
+});
+goEasy.connect({
+    onSuccess:function(){
+        document.getElementById("tip").innerText = "✅连接成功！你的key是正常可用的";
+    },
+    onFailed:function(e){
+        document.getElementById("tip").innerText = "❌连接失败:"+e.content;
+    }
+})
+</script>
+</body>
+</html>
