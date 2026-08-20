@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>平板推送监听</title>
+    <title>终端平台</title>
     <style>
         * {
             margin: 0;
@@ -15,90 +15,96 @@
             background-color: #e8f8ee;
             color: #204030;
             min-height: 100vh;
+        }
+        .home-page {
+            width: 100%;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 24px;
+            padding: 30px 20px;
+        }
+        .logo-box {
+            margin-bottom: 32px;
+        }
+        .logo-box img {
+            max-width: 260px;
+            max-height: 260px;
+            object-fit: contain;
+        }
+        .title-text {
+            font-size: 34px;
+            color: #1b5c38;
+            font-weight: 600;
+            margin-bottom: 24px;
             text-align: center;
         }
-        .wrap {
-            max-width: 580px;
-            width: 100%;
-            background: #ffffff;
-            border-radius: 22px;
-            padding: 44px 32px;
-            border: 1px solid #c8eed9;
-            box-shadow: 0 6px 20px rgba(40, 160, 90, 0.12);
-        }
-        h2 {
-            font-size: 28px;
-            color: #1b5c38;
-            margin-bottom: 14px;
-        }
-        .tip {
-            color: #548c70;
+        .conn-status {
             font-size: 16px;
-            margin-bottom: 36px;
-        }
-        .state-box {
-            padding: 20px;
-            border-radius: 14px;
-            background-color: #f2fbf6;
-            font-size: 16px;
-            color: #204030;
         }
     </style>
 </head>
 <body>
-<div class="wrap">
-    <h2>正在监听推送</h2>
-    <p class="tip">页面需要保持前台打开，收到指令将立刻自动跳转</p>
-    <div class="state-box" id="stateText">正在启动连接……</div>
-</div>
+    <div class="home-page">
+        <div class="logo-box">
+            <img src="在这里替换成你的logo图片链接" alt="logo">
+        </div>
+        <div class="title-text">欢迎使用终端平台</div>
+        <div class="conn-status" id="connectStatus">正在连接推送服务...</div>
+    </div>
 
-<script src="https://cdn.goeasy.io/goeasy-2.10.1.min.js"></script>
+<script src="https://cdn.goeasy.io/goeasy-2.13.24.min.js"></script>
 <script>
-    // ========== 和发送端填写完全一样的配置 ==========
-    const commonKey = "BC-d4cfcb8b7010477c8b095b97d042aa12";
-    const channelName = "internal‑didit‑push‑001";
-    // ================================================
+    // ========== 配置项，自行修改 ==========
+    const commonKey = "在这里填入你的GoEasy Common Key"; // BC‑开头
+    const channelName = "terminal‑platform‑push‑001";
+    const CMD_BACK_HOME = "__BACK_TO_HOME__";
+    // ======================================
+    const connectStatus = document.getElementById("connectStatus");
 
-    let goEasy = null;
-    let channelObj = null;
-    const stateText = document.getElementById('stateText');
-
-    function startListen() {
-        if (!commonKey || commonKey === "BC-d4cfcb8b7010477c8b095b97d042aa12") {
-            stateText.innerText = "错误：请先在源码内填写 GoEasy Common Key";
+    function startConnect() {
+        if (!commonKey || commonKey === "在这里填入你的GoEasy Common Key") {
+            connectStatus.innerText = "错误：请先填入 Common Key(BC‑开头)";
             return;
         }
-        if (goEasy) goEasy.disconnect();
-
-        goEasy = new GoEasy({ appkey: commonKey });
-        stateText.innerText = "正在连接 GoEasy 服务……";
-
-        channelObj = goEasy.subscribe({
-            channel: channelName,
-            onMessage: function (msg) {
-                try {
-                    const data = JSON.parse(msg.content);
-                    if (data.jumpUrl && data.jumpUrl.startsWith("http")) {
-                        stateText.innerText = "收到跳转指令，即将打开：" + data.jumpUrl;
-                        window.location.href = data.jumpUrl;
-                    }
-                } catch (e) { }
-            },
+        let goEasy = GoEasy.getInstance({
+            host: "hangzhou.goeasy.io",
+            appkey: commonKey,
+            modules: ['pubsub']
+        });
+        goEasy.connect({
             onSuccess: function () {
-                stateText.innerText = "✅ 连接成功，等待推送指令";
+                connectStatus.innerText = "✅推送服务已就绪，等待接收指令";
+                goEasy.pubsub.subscribe({
+                    channel: channelName,
+                    onMessage: function (msg) {
+                        const content = msg.content;
+                        if (content === CMD_BACK_HOME) {
+                            // 收到返回首页指令，刷新当前页面回到欢迎界面
+                            location.reload();
+                        } else if (content.startsWith("http")) {
+                            // 收到链接，当前页面直接跳转
+                            location.href = content;
+                        }
+                    },
+                    onSuccess: function () {
+                        console.log("订阅频道成功");
+                    },
+                    onFailed: function (err) {
+                        connectStatus.innerText = "订阅频道失败：" + err.content;
+                    }
+                })
             },
             onFailed: function (err) {
-                stateText.innerText = "连接失败：" + err.content;
+                connectStatus.innerText = "连接推送服务失败：" + err.content;
+            },
+            onProgress: function (attempts) {
+                connectStatus.innerText = "正在尝试连接，第" + attempts + "次";
             }
         })
     }
-
-    window.onload = startListen;
+    window.onload = startConnect;
 </script>
 </body>
 </html>
