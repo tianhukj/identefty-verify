@@ -3,179 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>下发 Didit 链接控制台</title>
+    <title>推送发送控制台</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            font-family: system-ui, sans-serif;
         }
         body {
             background-color: #e8f8ee;
-            color: #204030;
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 20px;
         }
-        .card {
+        .wrap {
             width: 100%;
-            max-width: 640px;
-            background: #ffffff;
-            border-radius: 20px;
-            padding: 36px;
-            box-shadow: 0 6px 20px rgba(40, 160, 90, 0.12);
-            border: 1px solid #c8eed9;
+            max-width: 600px;
         }
-        h1 {
-            font-size: 26px;
+        .title {
+            font-size: 28px;
             color: #1b5c38;
-            margin-bottom: 10px;
+            text-align: center;
+            margin-bottom: 36px;
         }
-        .desc {
-            color: #548c70;
-            font-size: 15px;
-            margin-bottom: 30px;
-        }
-        .input-block {
+        .input-item {
             margin-bottom: 24px;
         }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
-            color: #307050;
-            font-weight: 500;
-        }
-        input {
+        .input-item input {
             width: 100%;
-            background-color: #f2fbf6;
+            background: #f2fbf6;
             border: 1px solid #b2e2cb;
-            border-radius: 12px;
-            padding: 15px 18px;
-            color: #204030;
+            border-radius: 14px;
+            padding: 16px 20px;
             font-size: 16px;
             outline: none;
-            transition: 0.25s ease;
         }
-        input:focus {
+        .input-item input:focus {
             border-color: #42b983;
             box-shadow: 0 0 0 4px rgba(66, 185, 131, 0.15);
         }
         .btn {
             width: 100%;
-            padding: 16px;
-            border-radius: 12px;
+            padding: 18px;
+            border-radius: 14px;
             border: none;
             background: linear-gradient(135deg, #42b983, #36a573);
-            color: #ffffff;
-            font-size: 17px;
+            color: #fff;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
-            transition: 0.25s ease;
+            transition: 0.25s;
+            margin-bottom:16px;
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #4088bb, #307099);
         }
         .btn:hover {
-            background: linear-gradient(135deg, #38a874, #2d9465);
             transform: translateY(-2px);
         }
-        .btn:active {
-            transform: translateY(0);
-        }
-        .status {
+        .status-text {
             margin-top: 20px;
-            padding: 16px 18px;
-            border-radius: 12px;
-            background-color: #f2fbf6;
-            font-size: 15px;
-            min-height: 52px;
-            color: #204030;
+            text-align: center;
+            font-size: 16px;
         }
     </style>
 </head>
 <body>
-<div class="card">
-    <h1>下发 Didit 链接控制台</h1>
-    <p class="desc">输入 Didit 会话链接，一键推送到平板监听页面</p>
-
-    <div class="input-block">
-        <label>Didit 跳转链接</label>
-        <input type="text" id="urlInput" placeholder="粘贴完整的 Didit session 链接">
+<div class="wrap">
+    <div class="title">推送发送控制台</div>
+    <div class="input-item">
+        <input id="urlInput" placeholder="输入要推送到平板的完整链接（http/https开头）">
     </div>
-
-    <button class="btn" id="sendBtn">推送链接至平板</button>
-    <div class="status" id="statusBox">状态：等待操作</div>
+    <button class="btn" id="sendUrlBtn">推送链接至平板</button>
+    <button class="btn btn-secondary" id="sendBackBtn">指令：让平板返回欢迎首页</button>
+    <div class="status-text" id="statusBox">等待操作</div>
 </div>
 
 <script src="https://cdn.goeasy.io/goeasy-2.13.24.min.js"></script>
 <script>
-    // ========== 仅此处修改，填入你的 Common Key（BC‑开头） ==========
-    const commonKey = "在这里填入你的GoEasy Common Key";
-    const channelName = "internal-didit-push-001";
-    // ======================================================
+    // ========== 配置项，自行修改 ==========
+    const commonKey = "在这里填入你的GoEasy Common Key"; // BC‑开头
+    const channelName = "terminal‑platform‑push‑001";
+    const CMD_BACK_HOME = "__BACK_TO_HOME__";
+    // ======================================
 
     let goEasy = null;
     let isConnected = false;
-    const statusBox = document.getElementById('statusBox');
+    const statusBox = document.getElementById("statusBox");
+    const urlInput = document.getElementById("urlInput");
+    const sendUrlBtn = document.getElementById("sendUrlBtn");
+    const sendBackBtn = document.getElementById("sendBackBtn");
 
-    function initGoEasy(){
-        if(!commonKey || commonKey === "在这里填入你的GoEasy Common Key"){
-            statusBox.innerText = "错误：请先在源码内填写 GoEasy Common Key";
+    function initGoEasy() {
+        if (!commonKey || commonKey === "在这里填入你的GoEasy Common Key") {
+            statusBox.innerText = "错误：请先填入 Common Key(BC‑开头)";
             return;
         }
         goEasy = GoEasy.getInstance({
+            host: "hangzhou.goeasy.io",
             appkey: commonKey,
             modules: ['pubsub']
         });
         goEasy.connect({
-            onSuccess:function(){
+            onSuccess: function () {
                 isConnected = true;
                 statusBox.innerText = "GoEasy连接成功，可以发送";
             },
-            onFailed:function(err){
+            onFailed: function (err) {
                 isConnected = false;
                 statusBox.innerText = "连接失败：" + err.content;
+            },
+            onProgress: function (attempts) {
+                statusBox.innerText = "正在尝试连接，第" + attempts + "次";
+            }
+        });
+    }
+
+    function sendMsg(text) {
+        if (!isConnected) {
+            statusBox.innerText = "尚未连接，请等待连接成功";
+            return;
+        }
+        goEasy.pubsub.publish({
+            channel: channelName,
+            message: text,
+            onSuccess: function () {
+                statusBox.innerText = "✅消息发送成功";
+            },
+            onFailed: function (err) {
+                statusBox.innerText = "发送失败：" + err.content;
             }
         })
     }
 
-    document.getElementById('sendBtn').onclick = function () {
-        const targetUrl = document.getElementById('urlInput').value.trim();
-        if (!commonKey || commonKey === "在这里填入你的GoEasy Common Key") {
-            statusBox.innerText = "错误：请先在源码内填写 GoEasy Common Key";
-            return;
-        }
+    sendUrlBtn.onclick = function () {
+        const targetUrl = urlInput.value.trim();
         if (!targetUrl) {
-            statusBox.innerText = "状态：请输入跳转链接";
+            statusBox.innerText = "请输入链接";
             return;
         }
         if (!targetUrl.startsWith("http")) {
-            statusBox.innerText = "状态：链接必须以 http / https 开头";
+            statusBox.innerText = "链接必须以 http / https 开头";
             return;
         }
-        if(!goEasy){
-            initGoEasy();
-            statusBox.innerText = "正在初始化连接，请稍后再点";
-            return;
-        }
-        if(!isConnected){
-            statusBox.innerText = "尚未连接成功，等待连接";
-            return;
-        }
-
-        statusBox.innerText = "状态：正在推送消息……";
-        goEasy.pubsub.publish({
-            channel: channelName,
-            message: JSON.stringify({ jumpUrl: targetUrl }),
-            onSuccess: function () {
-                statusBox.innerText = "✅ 推送成功，平板将会自动跳转";
-            },
-            onFailed: function (err) {
-                statusBox.innerText = "推送失败：" + err.content;
-            }
-        })
+        sendMsg(targetUrl);
     }
+
+    sendBackBtn.onclick = function () {
+        sendMsg(CMD_BACK_HOME);
+    }
+
+    initGoEasy();
 </script>
 </body>
 </html>
